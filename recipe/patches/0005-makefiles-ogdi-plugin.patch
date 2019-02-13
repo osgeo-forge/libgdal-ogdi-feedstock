@@ -1,0 +1,105 @@
+diff --git a/frmts/makefile.vc b/frmts/makefile.vc
+index 315a1cd..b642ac6 100644
+--- a/frmts/makefile.vc
++++ b/frmts/makefile.vc
+@@ -40,12 +40,9 @@ EXTRAFLAGS	=	-DFRMT_jpeg $(EXTRAFLAGS)
+ EXTRAFLAGS	=	$(EXTRAFLAGS) -DFRMT_bsb
+ !ENDIF
+
+-!IFDEF OGDIDIR
+-!ELSE
+ !IFNDEF ZLIB_EXTERNAL_LIB
+ EXTRAFLAGS	=	$(EXTRAFLAGS) -DFRMT_zlib
+ !ENDIF
+-!ENDIF
+
+ !IFDEF JASPER_DIR
+ EXTRAFLAGS	=	$(EXTRAFLAGS) -DFRMT_jpeg2000
+diff --git a/ogr/ogrsf_frmts/generic/makefile.vc b/ogr/ogrsf_frmts/generic/makefile.vc
+index 1e4010d..1f4c0cb 100644
+--- a/ogr/ogrsf_frmts/generic/makefile.vc
++++ b/ogr/ogrsf_frmts/generic/makefile.vc
+@@ -23,9 +23,11 @@ EXTRAFLAGS =	-I.. -I..\.. $(OGDIDEF) $(FMEDEF) $(OCIDEF) $(PGDEF) \
+ 		$(ELASTICDEF) $(OSMDEF) $(VFKDEF) $(CARTODEF) $(AMIGOCLOUDDEF) $(PLSCENESDEF) $(CSWDEF) $(MONGODBDEF) \
+ 		$(GMLASDEF)
+
+-!IFDEF OGDIDIR
++!IFDEF OGDI_DIR
++!IFNDEF OGDI_PLUGIN
+ OGDIDEF	=	-DOGDI_ENABLED
+ !ENDIF
++!ENDIF
+
+ !IFDEF ODBC_SUPPORTED
+ ODBCDEF	=	-DODBC_ENABLED -DPGEO_ENABLED -DDB2_ENABLED -DMSSQLSPATIAL_ENABLED -DGEOMEDIA_ENABLED -DWALK_ENABLED
+diff --git a/ogr/ogrsf_frmts/makefile.vc b/ogr/ogrsf_frmts/makefile.vc
+index e48363b..eaf463d 100644
+--- a/ogr/ogrsf_frmts/makefile.vc
++++ b/ogr/ogrsf_frmts/makefile.vc
+@@ -24,6 +24,7 @@ PLUGINDIRLIST	=	$(PLUGIN_ARCOBJECTS_DIR) \
+ 			$(PLUGIN_SOSI_DIR) \
+ 			$(PLUGIN_FGDB_DIR) \
+ 			$(PLUGIN_AMIGOCLOUD_DIR) \
++			$(PLUGIN_OGDIDIR) \
+ 			$(PLUGIN_OCIDIR) \
+ 			$(PLUGIN_SDE_DIR) \
+ 			$(PLUGIN_INGRESDIR) \
+@@ -31,9 +32,13 @@ PLUGINDIRLIST	=	$(PLUGIN_ARCOBJECTS_DIR) \
+ 			$(PLUGIN_MONGODBDIR) \
+ 			$(PLUGIN_MSSPATIALDIR)
+
+-!IFDEF OGDIDIR
++!IFDEF OGDI_DIR
++!IF "$(OGDI_PLUGIN)" != "YES"
+ OGDIDIR	=	ogdi
+ OGDIOBJ =	ogdi\*.obj
++!ELSE
++PLUGIN_OGDIDIR = ogdi
++!ENDIF
+ !ENDIF
+
+ !IFDEF ODBC_SUPPORTED
+diff --git a/ogr/ogrsf_frmts/ogdi/makefile.vc b/ogr/ogrsf_frmts/ogdi/makefile.vc
+index 991bbe8..20fe50a 100644
+--- a/ogr/ogrsf_frmts/ogdi/makefile.vc
++++ b/ogr/ogrsf_frmts/ogdi/makefile.vc
+@@ -2,17 +2,36 @@
+ OBJ	=	ogrogdidriver.obj ogrogdidatasource.obj ogrogdilayer.obj
+
+ EXTRAFLAGS =	-I.. -I..\.. \
+-		-I$(OGDI_INCLUDE) -I$(OGDIDIR)/include/win32 \
+-		-I$(OGDIDIR)/proj -DWIN32 -D_WINDOWS
++		-I$(OGDI_INCLUDE) -I$(OGDI_DIR)/include/win32 \
++		$(PROJ_INCLUDE) -I$(OGDI_DIR)/proj -DWIN32 -D_WINDOWS
+
+ GDAL_ROOT	=	..\..\..
+
++PLUGIN_DLL 	=	ogr_OGDI.dll
++
+ !INCLUDE $(GDAL_ROOT)\nmake.opt
+
+ default:	$(OBJ)
++	$(INSTALL) *.obj ..\o
++
++all:	default
+
+ clean:
+-	-del *.obj *.pdb
++	-del *.obj
++	-del *.dll
++	-del *.exp
++	-del *.lib
++	-del *.manifest
++	-del *.pdb
++	-del *.tlh
++
++plugin: $(PLUGIN_DLL)
+
++$(PLUGIN_DLL):	$(OBJ)
++	link /dll $(LDEBUG) /out:$(PLUGIN_DLL) $(OBJ) $(GDAL_ROOT)/gdal_i.lib $(OGDI_LIB)
++	if exist $(PLUGIN_DLL).manifest mt -manifest $(PLUGIN_DLL).manifest -outputresource:$(PLUGIN_DLL);2
+
+
++plugin-install:
++	-mkdir $(PLUGINDIR)
++	$(INSTALL) $(PLUGIN_DLL) $(PLUGINDIR)

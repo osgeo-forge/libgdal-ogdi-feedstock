@@ -1,0 +1,38 @@
+diff --git a/ogr/ogrsf_frmts/ogdi/ogrogdi.h b/ogr/ogrsf_frmts/ogdi/ogrogdi.h
+index 1044eef..6a2700e 100644
+--- a/ogr/ogrsf_frmts/ogdi/ogrogdi.h
++++ b/ogr/ogrsf_frmts/ogdi/ogrogdi.h
+@@ -149,4 +149,8 @@ class OGROGDIDriver final: public OGRSFDriver
+     int         TestCapability( const char * ) override;
+ };
+ 
++CPL_C_START
++void CPL_DLL RegisterOGROGDI();
++CPL_C_END
++
+ #endif /* OGDOGDI_H_INCLUDED */
+diff --git a/ogr/ogrsf_frmts/ogdi/ogrogdidriver.cpp b/ogr/ogrsf_frmts/ogdi/ogrogdidriver.cpp
+index f40a052..d9fb776 100644
+--- a/ogr/ogrsf_frmts/ogdi/ogrogdidriver.cpp
++++ b/ogr/ogrsf_frmts/ogdi/ogrogdidriver.cpp
+@@ -32,6 +32,8 @@
+ 
+ CPL_CVSID("$Id: ogrogdidriver.cpp 7e07230bbff24eb333608de4dbd460b7312839d0 2017-12-11 19:08:47Z Even Rouault $")
+ 
++extern "C" void RegisterOGROGDI();
++
+ /************************************************************************/
+ /*                           ~OGROGDIDriver()                           */
+ /************************************************************************/
+@@ -120,7 +122,11 @@ void RegisterOGROGDI()
+     if( !GDAL_CHECK_VERSION("OGR/OGDI driver") )
+         return;
+ 
++    if( GDALGetDriverByName( "OGR_OGDI" ) != nullptr )
++        return;
++
+     OGRSFDriver* poDriver = new OGROGDIDriver;
++    poDriver->SetDescription( "OGR_OGDI" );
+     poDriver->SetMetadataItem( GDAL_DMD_LONGNAME,
+                                "OGDI Vectors (VPF, VMAP, DCW)" );
+     poDriver->SetMetadataItem( GDAL_DMD_HELPTOPIC, "drv_ogdi.html" );
